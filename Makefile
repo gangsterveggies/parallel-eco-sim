@@ -7,6 +7,7 @@ CLIBS= -lpthread
 
 SRC =                   \
 	Timer.cpp	\
+	StaticEngine.cpp\
 	main.cpp
 
 OBJ =  ${SRC:.cpp=.o}
