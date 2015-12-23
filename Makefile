@@ -6,6 +6,7 @@ CFLAGS= -w -Wno-write-strings -O3 -Wall -g
 CLIBS= -lpthread
 
 SRC =                   \
+	Timer.cpp	\
 	main.cpp
 
 OBJ =  ${SRC:.cpp=.o}

@@ -4,7 +4,9 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include <vector>
+#include <queue>
 #include <algorithm>
+#include "Timer.h"
 
 using namespace std;
 
@@ -31,12 +33,24 @@ struct Rabbit
 {
   int p_x, p_y;
   int age;
+
+  bool operator < (const Rabbit& rb) const
+  {
+    return age > rb.age;
+  }
 } typedef Rabbit;
 
 struct Fox
 {
   int p_x, p_y;
   int age, hunger;
+
+  bool operator < (const Fox& fx) const
+  {
+    if (age == fx.age)
+      return hunger < fx.hunger;
+    return age > fx.age;
+  }
 } typedef Fox;
 
 struct Rock
@@ -45,7 +59,11 @@ struct Rock
 } typedef Rock;
 
 TInfo th_info[MAX_THREAD];
-int n_th;
+pthread_mutex_t th_locks[MAX_THREAD];
+pthread_barrier_t barrier;
+int n_th = 0, verbose = 0, to_print = 0, to_time = 0;
+queue<Fox> fox_queues[MAX_THREAD];
+queue<Rabbit> rabbit_queues[MAX_THREAD];
 
 int dx[4] = {0, 1, 0, -1};
 int dy[4] = {-1, 0, 1, 0};
@@ -53,14 +71,31 @@ int GEN_PROC_RABBITS, GEN_PROC_FOXES, GEN_FOOD_FOXES, N_GEN, R, C, N;
 int pos_grid[MAX_SIZE][MAX_SIZE];
 int age_grid[MAX_SIZE][MAX_SIZE];
 int hun_grid[MAX_SIZE][MAX_SIZE];
+int tmp_pos_grid[MAX_SIZE][MAX_SIZE];
+int tmp_age_grid[MAX_SIZE][MAX_SIZE];
+int tmp_hun_grid[MAX_SIZE][MAX_SIZE];
 
 void print_gen(int gen);
+
+void print_help()
+{
+  printf("usage:\n\tsim -np <np> [arguments]\n\n"
+         "Available arguments:\n"
+         "\t-h\t\tdisplay this help file\n"
+         "\t-np <np>\t\tuse <np> threads\n");
+}
 
 void init()
 {
   memset(pos_grid, 0, sizeof pos_grid);
   memset(age_grid, 0, sizeof age_grid);
   memset(hun_grid, 0, sizeof hun_grid);
+
+  int i;
+  for (i = 0; i < n_th; i++)
+    pthread_mutex_init(&(th_locks[i]), NULL);
+
+  pthread_barrier_init(&barrier, NULL, n_th);
 }
 
 void insert_rabbit(Rabbit rabbit)
@@ -141,20 +176,108 @@ void distribute_input()
   }
 }
 
+void replace_rabbit(Rabbit rabbit, TInfo inf)
+{
+  if (!(rabbit.p_x >= inf.st_x &&
+        rabbit.p_x <= inf.fn_x &&
+        rabbit.p_y >= inf.st_y &&
+        rabbit.p_y <= inf.fn_y))
+  {
+    int i;
+    for (i = 0; i < n_th; i++)
+    {
+      TInfo n_inf = th_info[i];
+      if ((rabbit.p_x >= n_inf.st_x &&
+           rabbit.p_x <= n_inf.fn_x &&
+           rabbit.p_y >= n_inf.st_y &&
+           rabbit.p_y <= n_inf.fn_y))
+        break;
+    }
+
+    pthread_mutex_lock(&(th_locks[i]));
+    rabbit_queues[i].push(rabbit);
+    pthread_mutex_unlock(&(th_locks[i]));
+
+    return;
+  }
+
+  int larger_flag = 1;
+  if (tmp_pos_grid[rabbit.p_y][rabbit.p_x] == RABBIT_ID)
+  {
+    Rabbit cur_rabbit;
+    cur_rabbit.age = tmp_age_grid[rabbit.p_y][rabbit.p_x];
+    larger_flag = rabbit < cur_rabbit;
+  }
+
+  if (!larger_flag)
+    return;
+
+  tmp_pos_grid[rabbit.p_y][rabbit.p_x] = RABBIT_ID;
+  tmp_age_grid[rabbit.p_y][rabbit.p_x] = rabbit.age;
+}
+
+void replace_fox(Fox fox, TInfo inf)
+{
+  if (!(fox.p_x >= inf.st_x &&
+        fox.p_x <= inf.fn_x &&
+        fox.p_y >= inf.st_y &&
+        fox.p_y <= inf.fn_y))
+  {
+    int i;
+    for (i = 0; i < n_th; i++)
+    {
+      TInfo n_inf = th_info[i];
+      if ((fox.p_x >= n_inf.st_x &&
+           fox.p_x <= n_inf.fn_x &&
+           fox.p_y >= n_inf.st_y &&
+           fox.p_y <= n_inf.fn_y))
+        break;
+    }
+
+    pthread_mutex_lock(&(th_locks[i]));
+    fox_queues[i].push(fox);
+    pthread_mutex_unlock(&(th_locks[i]));
+
+    return;
+  }
+
+  int larger_flag = 1;
+  if (tmp_pos_grid[fox.p_y][fox.p_x] == FOX_ID)
+  {
+    Fox cur_fox;
+    cur_fox.age = tmp_age_grid[fox.p_y][fox.p_x];
+    cur_fox.hunger = tmp_hun_grid[fox.p_y][fox.p_x];
+    larger_flag = fox < cur_fox;
+  }
+
+  if (!larger_flag)
+    return;
+
+  tmp_pos_grid[fox.p_y][fox.p_x] = FOX_ID;
+  tmp_age_grid[fox.p_y][fox.p_x] = fox.age;
+  tmp_hun_grid[fox.p_y][fox.p_x] = fox.hunger;
+}
+
 void *static_compute(void *arg)
 {
   TInfo inf = *((TInfo *)arg);
-  int tmp_pos_grid[inf.fn_y - inf.st_y + 1][inf.fn_x - inf.st_x + 1];
-  int tmp_age_grid[inf.fn_y - inf.st_y + 1][inf.fn_x - inf.st_x + 1];
-  int tmp_hun_grid[inf.fn_y - inf.st_y + 1][inf.fn_x - inf.st_x + 1];
 
   int iter, i, i_x, i_y;
   for (iter = 0; iter < N_GEN; iter++)
   {
-    print_gen(iter);
+    // Sync threads
+    pthread_barrier_wait(&barrier);
+    if (verbose && inf.id == 0)
+      print_gen(iter);
+
     // Simulate Rabbits
-    memset(tmp_pos_grid, -1, sizeof tmp_pos_grid);
-    memset(tmp_age_grid, 0, sizeof tmp_age_grid);
+    for (i_y = inf.st_y; i_y <= inf.fn_y; i_y++)
+      for (i_x = inf.st_x; i_x <= inf.fn_x; i_x++)
+      {
+        tmp_pos_grid[i_y][i_x] = 0;
+        tmp_age_grid[i_y][i_x] = 0;
+      }
+
     for (i_y = inf.st_y; i_y <= inf.fn_y; i_y++)
       for (i_x = inf.st_x; i_x <= inf.fn_x; i_x++)
         if (pos_grid[i_y][i_x] == RABBIT_ID)
@@ -174,45 +297,68 @@ void *static_compute(void *arg)
           {
             tmp_pos_grid[i_y][i_x] = pos_grid[i_y][i_x];
             tmp_age_grid[i_y][i_x] = age_grid[i_y][i_x] + 1;
+
+            Rabbit n_rabbit;
+            n_rabbit.p_x = i_x;
+            n_rabbit.p_y = i_y;
+            n_rabbit.age = age_grid[i_y][i_x] + 1;
+            replace_rabbit(n_rabbit, inf);
           }
           else
           {
-            int proc_flag = 0;
+            int proc_flag = age_grid[i_y][i_x] >= GEN_PROC_RABBITS;
 
-            if (age_grid[i_y][i_x] >= GEN_PROC_RABBITS)
+            if (proc_flag)
             {
-              tmp_pos_grid[i_y][i_x] = pos_grid[i_y][i_x];
-              tmp_age_grid[i_y][i_x] = max(tmp_age_grid[i_y][i_x], 0);
-              proc_flag = 1;
-            }
-            else
-            {
-              if (tmp_pos_grid[i_y][i_x] == -1)
-              {
-                tmp_pos_grid[i_y][i_x] = EMPTY_ID;
-                tmp_age_grid[i_y][i_x] = 0;
-              }
+              Rabbit n_rabbit;
+              n_rabbit.p_x = i_x;
+              n_rabbit.p_y = i_y;
+              n_rabbit.age = 0;
+              replace_rabbit(n_rabbit, inf);
             }
 
             Position n_pos = candidate_moves[(iter + i_x + i_y) % ((int) candidate_moves.size())];
-            tmp_pos_grid[n_pos.pY][n_pos.pX] = pos_grid[i_y][i_x];
-            tmp_age_grid[n_pos.pY][n_pos.pX] = max(tmp_age_grid[n_pos.pY][n_pos.pX],
-                                                   (proc_flag ? 0 : age_grid[i_y][i_x] + 1));
+            Rabbit n_rabbit;
+            n_rabbit.p_x = n_pos.pX;
+            n_rabbit.p_y = n_pos.pY;
+            n_rabbit.age = (proc_flag ? 0 : age_grid[i_y][i_x] + 1);
+            replace_rabbit(n_rabbit, inf);
           }
         }
 
+    // Sync threads
+    pthread_barrier_wait(&barrier);
+
+    while (!rabbit_queues[inf.id].empty())
+    {
+      replace_rabbit(rabbit_queues[inf.id].front(), inf);
+      rabbit_queues[inf.id].pop();
+    }
+
     for (i_y = inf.st_y; i_y <= inf.fn_y; i_y++)
       for (i_x = inf.st_x; i_x <= inf.fn_x; i_x++)
-        if (tmp_pos_grid[i_y][i_x] != -1)
+        if (tmp_pos_grid[i_y][i_x] == RABBIT_ID)
         {
           pos_grid[i_y][i_x] = tmp_pos_grid[i_y][i_x];
           age_grid[i_y][i_x] = tmp_age_grid[i_y][i_x];
         }
+        else if (pos_grid[i_y][i_x] == RABBIT_ID)
+        {
+          pos_grid[i_y][i_x] = EMPTY_ID;
+          age_grid[i_y][i_x] = 0;
+        }
+
+    // Sync threads
+    pthread_barrier_wait(&barrier);
 
     // Simulate Foxes
-    memset(tmp_pos_grid, -1, sizeof tmp_pos_grid);
-    memset(tmp_age_grid, 0, sizeof tmp_age_grid);
-    memset(tmp_hun_grid, 0, sizeof tmp_hun_grid);
+    for (i_y = inf.st_y; i_y <= inf.fn_y; i_y++)
+      for (i_x = inf.st_x; i_x <= inf.fn_x; i_x++)
+      {
+        tmp_pos_grid[i_y][i_x] = 0;
+        tmp_age_grid[i_y][i_x] = 0;
+        tmp_hun_grid[i_y][i_x] = 0;
+      }
 
     for (i_y = inf.st_y; i_y <= inf.fn_y; i_y++)
       for (i_x = inf.st_x; i_x <= inf.fn_x; i_x++)
@@ -243,88 +389,70 @@ void *static_compute(void *arg)
 
           if (candidate_moves.empty())
           {
-            tmp_pos_grid[i_y][i_x] = pos_grid[i_y][i_x];
-            tmp_age_grid[i_y][i_x] = age_grid[i_y][i_x] + 1;
-            tmp_hun_grid[i_y][i_x] = hun_grid[i_y][i_x] + 1;
+            if (hun_grid[i_y][i_x] + 1 >= GEN_FOOD_FOXES)
+              continue;
+
+            Fox n_fox;
+            n_fox.p_x = i_x;
+            n_fox.p_y = i_y;
+            n_fox.age = age_grid[i_y][i_x] + 1;
+            n_fox.hunger = hun_grid[i_y][i_x] + 1;
+            replace_fox(n_fox, inf);
           }
           else
           {
-            int proc_flag = 0, eat_flag = 0;
             Position n_pos = candidate_moves[(iter + i_x + i_y) % ((int) candidate_moves.size())];
-            eat_flag = (pos_grid[n_pos.pY][n_pos.pX] == RABBIT_ID);
+            int proc_flag = age_grid[i_y][i_x] >= GEN_PROC_FOXES, eat_flag = (pos_grid[n_pos.pY][n_pos.pX] == RABBIT_ID);
 
             if (!eat_flag && hun_grid[i_y][i_x] + 1 >= GEN_FOOD_FOXES)
-            {
-              if (tmp_pos_grid[i_y][i_x] == -1)
-              {
-                tmp_pos_grid[i_y][i_x] = EMPTY_ID;
-                tmp_age_grid[i_y][i_x] = 0;
-                tmp_hun_grid[i_y][i_x] = 0;
-              }
               continue;
+
+            if (proc_flag)
+            {
+              Fox n_fox;
+              n_fox.p_x = i_x;
+              n_fox.p_y = i_y;
+              n_fox.age = 0;
+              n_fox.hunger = 0;
+              replace_fox(n_fox, inf);
             }
 
-            if (age_grid[i_y][i_x] >= GEN_PROC_FOXES)
-            {
-              if (tmp_pos_grid[i_y][i_x] == FOX_ID)
-              {
-                if (tmp_age_grid[i_y][i_x] < 0)
-                {
-                  tmp_age_grid[i_y][i_x] = 0;
-                  tmp_hun_grid[i_y][i_x] = 0;
-                }
-                else if (tmp_age_grid[i_y][i_x] == 0 &&
-                         tmp_hun_grid[i_y][i_x] > 0)
-                  tmp_hun_grid[i_y][i_x] = 0;
-              }
-              tmp_pos_grid[i_y][i_x] = pos_grid[i_y][i_x];
-
-              proc_flag = 1;
-            }
-            else
-            {
-              if (tmp_pos_grid[i_y][i_x] == -1)
-              {
-                tmp_pos_grid[i_y][i_x] = EMPTY_ID;
-                tmp_age_grid[i_y][i_x] = 0;
-                tmp_hun_grid[i_y][i_x] = 0;
-              }
-            }
-
-            if (tmp_pos_grid[n_pos.pY][n_pos.pX] == FOX_ID)
-            {
-              if (tmp_age_grid[n_pos.pY][n_pos.pX] < (proc_flag ? 0 : age_grid[i_y][i_x] + 1))
-              {
-                tmp_age_grid[n_pos.pY][n_pos.pX] = (proc_flag ? 0 : age_grid[i_y][i_x] + 1);
-                tmp_hun_grid[n_pos.pY][n_pos.pX] = (eat_flag ? 0 : hun_grid[i_y][i_x] + 1);
-              }
-              else if (tmp_age_grid[n_pos.pY][n_pos.pX] == (proc_flag ? 0 : age_grid[i_y][i_x] + 1) &&
-                       tmp_hun_grid[n_pos.pY][n_pos.pX] > (eat_flag ? 0 : hun_grid[i_y][i_x] + 1))
-                tmp_hun_grid[n_pos.pY][n_pos.pX] = (eat_flag ? 0 : hun_grid[i_y][i_x] + 1);
-            }
-            else
-            {
-              tmp_age_grid[n_pos.pY][n_pos.pX] = (proc_flag ? 0 : age_grid[i_y][i_x] + 1);
-              tmp_hun_grid[n_pos.pY][n_pos.pX] = (eat_flag ? 0 : hun_grid[i_y][i_x] + 1);
-            }
-
-            tmp_pos_grid[n_pos.pY][n_pos.pX] = pos_grid[i_y][i_x];
+            Fox n_fox;
+            n_fox.p_x = n_pos.pX;
+            n_fox.p_y = n_pos.pY;
+            n_fox.age = (proc_flag ? 0 : age_grid[i_y][i_x] + 1);
+            n_fox.hunger = (eat_flag ? 0 : hun_grid[i_y][i_x] + 1);
+            replace_fox(n_fox, inf);
           }
         }
 
+    // Sync threads
+    pthread_barrier_wait(&barrier);
+
+    while (!fox_queues[inf.id].empty())
+    {
+      replace_fox(fox_queues[inf.id].front(), inf);
+      fox_queues[inf.id].pop();
+    }
+
     for (i_y = inf.st_y; i_y <= inf.fn_y; i_y++)
       for (i_x = inf.st_x; i_x <= inf.fn_x; i_x++)
-        if (tmp_pos_grid[i_y][i_x] != -1)
+        if (tmp_pos_grid[i_y][i_x] == FOX_ID)
         {
           pos_grid[i_y][i_x] = tmp_pos_grid[i_y][i_x];
           age_grid[i_y][i_x] = tmp_age_grid[i_y][i_x];
           hun_grid[i_y][i_x] = tmp_hun_grid[i_y][i_x];
         }
-
-    // Sync threads
+        else if (pos_grid[i_y][i_x] == FOX_ID)
+        {
+          pos_grid[i_y][i_x] = EMPTY_ID;
+          age_grid[i_y][i_x] = 0;
+          hun_grid[i_y][i_x] = 0;
+        }
   }
 
-  print_gen(N_GEN);
+  if (verbose && inf.id == 0)
+    print_gen(N_GEN);
 }
 
 void print_gen(int gen)
@@ -388,13 +516,24 @@ int main(int argc, char* argv[])
   pthread_t *threads;
   pthread_attr_t pthread_custom_attr;
 
-  if (argc != 2)
-  {
-    printf("Usage: %s n\n  where n is number of threads\n", argv[0]);
-    exit(1);
-  }
-
-  n_th = atoi(argv[1]);
+  int i;
+  for (i = 1; i < argc; i++)
+    if (strcmp(argv[i], "-v") == 0)
+      verbose = 1;
+    else if (strcmp(argv[i], "-pr") == 0)
+      to_print = 1;
+    else if (strcmp(argv[i], "-tm") == 0)
+      to_time = 1;
+    else if (strcmp(argv[i], "-np") == 0)
+    {
+      n_th = atoi(argv[i + 1]);
+      i++;
+    }
+    else if (strcmp(argv[i], "-h") == 0)
+    {
+      print_help();
+      exit(0);
+    }
 
   if ((n_th < 1) || (n_th > MAX_THREAD - 1))
   {
@@ -404,12 +543,13 @@ int main(int argc, char* argv[])
 
   init();
   read_input();
+
+  Timer::start();
   distribute_input();
 
   threads = (pthread_t *)malloc(n_th * sizeof(*threads));
   pthread_attr_init(&pthread_custom_attr);
 
-  int i;
   for (i = 0; i < n_th; i++)
     pthread_create(&threads[i], &pthread_custom_attr, static_compute, (void *)(th_info + i));
 
@@ -417,7 +557,13 @@ int main(int argc, char* argv[])
     pthread_join(threads[i], NULL);
   free(threads);
 
-  print_output();
+  Timer::stop();
+
+  if (to_print)
+    print_output();
+
+  if (to_time)
+    printf("Computation Time (ms): %0.4lf\n", Timer::elapsed());
 
   return 0;
 }
