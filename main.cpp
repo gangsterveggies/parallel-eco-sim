@@ -64,6 +64,7 @@ pthread_barrier_t barrier;
 int n_th = 0, verbose = 0, to_print = 0, to_time = 0;
 queue<Fox> fox_queues[MAX_THREAD];
 queue<Rabbit> rabbit_queues[MAX_THREAD];
+int owner[MAX_SIZE][MAX_SIZE];
 
 int dx[4] = {0, 1, 0, -1};
 int dy[4] = {-1, 0, 1, 0};
@@ -164,7 +165,7 @@ void read_input()
 
 void distribute_input()
 {
-  int i, acc = 0;
+  int i, i_x, i_y, acc = 0;
   for (i = 0; i < n_th; i++)
   {
     th_info[i].id = i;
@@ -173,30 +174,21 @@ void distribute_input()
     th_info[i].st_y = acc;
     acc += R / n_th + ((R - n_th * (R / n_th)) > i);
     th_info[i].fn_y = acc - 1;
+
+    for (i_y = th_info[i].st_y; i_y <= th_info[i].fn_y; i_y++)
+      for (i_x = th_info[i].st_x; i_x <= th_info[i].fn_x; i_x++)
+        owner[i_y][i_x] = i;
   }
 }
 
 void replace_rabbit(Rabbit rabbit, TInfo inf)
 {
-  if (!(rabbit.p_x >= inf.st_x &&
-        rabbit.p_x <= inf.fn_x &&
-        rabbit.p_y >= inf.st_y &&
-        rabbit.p_y <= inf.fn_y))
+  if (owner[rabbit.p_y][rabbit.p_x] != inf.id)
   {
-    int i;
-    for (i = 0; i < n_th; i++)
-    {
-      TInfo n_inf = th_info[i];
-      if ((rabbit.p_x >= n_inf.st_x &&
-           rabbit.p_x <= n_inf.fn_x &&
-           rabbit.p_y >= n_inf.st_y &&
-           rabbit.p_y <= n_inf.fn_y))
-        break;
-    }
-
-    pthread_mutex_lock(&(th_locks[i]));
-    rabbit_queues[i].push(rabbit);
-    pthread_mutex_unlock(&(th_locks[i]));
+    int t_o = owner[rabbit.p_y][rabbit.p_x];
+    pthread_mutex_lock(&(th_locks[t_o]));
+    rabbit_queues[t_o].push(rabbit);
+    pthread_mutex_unlock(&(th_locks[t_o]));
 
     return;
   }
@@ -218,25 +210,12 @@ void replace_rabbit(Rabbit rabbit, TInfo inf)
 
 void replace_fox(Fox fox, TInfo inf)
 {
-  if (!(fox.p_x >= inf.st_x &&
-        fox.p_x <= inf.fn_x &&
-        fox.p_y >= inf.st_y &&
-        fox.p_y <= inf.fn_y))
+  if (owner[fox.p_y][fox.p_x] != inf.id)
   {
-    int i;
-    for (i = 0; i < n_th; i++)
-    {
-      TInfo n_inf = th_info[i];
-      if ((fox.p_x >= n_inf.st_x &&
-           fox.p_x <= n_inf.fn_x &&
-           fox.p_y >= n_inf.st_y &&
-           fox.p_y <= n_inf.fn_y))
-        break;
-    }
-
-    pthread_mutex_lock(&(th_locks[i]));
-    fox_queues[i].push(fox);
-    pthread_mutex_unlock(&(th_locks[i]));
+    int t_o = owner[fox.p_y][fox.p_x];
+    pthread_mutex_lock(&(th_locks[t_o]));
+    fox_queues[t_o].push(fox);
+    pthread_mutex_unlock(&(th_locks[t_o]));
 
     return;
   }
