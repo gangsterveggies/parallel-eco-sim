@@ -303,7 +303,10 @@ void StaticEngine::compute(TInfo inf)
   }
 
   if (verbose && inf.id == 0)
+  {
+    pthread_barrier_wait(&barrier);
     print_gen(N_GEN);
+  }
 }
 
 void StaticEngine::print_gen(int gen)
@@ -360,4 +363,20 @@ void StaticEngine::print_output()
         printf("FOX %d %d\n", i, j);
       else if (pos_grid[i][j] == ROCK_ID)
         printf("ROCK %d %d\n", i, j);
+}
+
+void StaticEngine::setup_input(int _GEN_PROC_RABBITS, int _GEN_PROC_FOXES, int _GEN_FOOD_FOXES, int _N_GEN, int _R, int _C, int _N)
+{
+  GEN_PROC_RABBITS = _GEN_PROC_RABBITS;
+  GEN_PROC_FOXES = _GEN_PROC_FOXES;
+  GEN_FOOD_FOXES = _GEN_FOOD_FOXES;
+  N_GEN = _N_GEN;
+  R = _R;
+  C = _C;
+  N = _N;
+}
+
+TInfo StaticEngine::get_info(int id)
+{
+  return th_info[id];
 }
