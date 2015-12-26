@@ -1,12 +1,17 @@
 import subprocess
+import sys
 
 threads = [1, 2, 4]
 tests = [("input5x5", "output5x5"), ("input10x10", "output10x10"), ("input20x20", "output20x20")]
+extra = ""
+
+if len(sys.argv) > 1:
+  extra = " ".join(sys.argv[1:])
 
 nok = False
 for i in threads:
   for t in tests:
-    runCommand = "./sim -np %d -pr" % i
+    runCommand = "./sim -np %d -pr %s" % (i, extra)
     fin = open("inputs/%s" % t[0], 'rb')
     fout = open("tmp.tmp", 'wr')
     subprocess.call(runCommand.split(), stdin=fin, stdout=fout)
