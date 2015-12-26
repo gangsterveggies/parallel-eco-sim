@@ -33,8 +33,6 @@ class DynamicEngine : public Engine
   int dy[4] = {-1, 0, 1, 0};
 
   int pos_grid[MAX_SIZE][MAX_SIZE];
-  Rabbit rabbit_grid[MAX_SIZE][MAX_SIZE];
-  Fox fox_grid[MAX_SIZE][MAX_SIZE];
 
   Rabbit test_rabbit_grid[MAX_SIZE][MAX_SIZE];
   Fox test_fox_grid[MAX_SIZE][MAX_SIZE];

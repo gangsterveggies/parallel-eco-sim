@@ -19,14 +19,12 @@ void DynamicEngine::init()
 void DynamicEngine::insert_rabbit(Rabbit rabbit)
 {
   pos_grid[rabbit.p_y][rabbit.p_x] = RABBIT_ID;
-  rabbit_grid[rabbit.p_y][rabbit.p_x] = rabbit;
   global_rabbit_list.push_back(rabbit);
 }
 
 void DynamicEngine::insert_fox(Fox fox)
 {
   pos_grid[fox.p_y][fox.p_x] = FOX_ID;
-  fox_grid[fox.p_y][fox.p_x] = fox;
   global_fox_list.push_back(fox);
 }
 
@@ -183,7 +181,6 @@ void DynamicEngine::compute(TInfo inf)
           test_mark_grid[rabbit.p_y][rabbit.p_x].second == i)
       {
         pos_grid[rabbit.p_y][rabbit.p_x] = RABBIT_ID;
-        rabbit_grid[rabbit.p_y][rabbit.p_x] = rabbit;
         test_mark_grid[rabbit.p_y][rabbit.p_x] = make_pair(-1, -1);
         rabbit_queue[inf.id].push(rabbit);
       }
@@ -306,7 +303,6 @@ void DynamicEngine::compute(TInfo inf)
           test_mark_grid[fox.p_y][fox.p_x].second == i)
       {
         pos_grid[fox.p_y][fox.p_x] = FOX_ID;
-        fox_grid[fox.p_y][fox.p_x] = fox;
         test_mark_grid[fox.p_y][fox.p_x] = make_pair(-1, -1);
         fox_queue[inf.id].push(fox);
       }
