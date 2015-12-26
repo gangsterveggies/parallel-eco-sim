@@ -4,10 +4,10 @@
 #include "Common.h"
 #include "Engine.h"
 
-class StaticEngine : public Engine
+class TopologyEngine : public Engine
 {
  public:
-  StaticEngine(int _verbose, int _n_th);
+  TopologyEngine(int _verbose, int _n_th);
 
   void init();
   void insert_rabbit(Rabbit rabbit);

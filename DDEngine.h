@@ -4,10 +4,10 @@
 #include "Common.h"
 #include "Engine.h"
 
-class DynamicEngine : public Engine
+class DDEngine : public Engine
 {
  public:
-  DynamicEngine(int _verbose, int _n_th, int _redistribute);
+  DDEngine(int _verbose, int _n_th, int _redistribute);
 
   void init();
   void insert_rabbit(Rabbit rabbit);

@@ -1,12 +1,12 @@
-#include "StaticEngine.h"
+#include "TopologyEngine.h"
 
-StaticEngine::StaticEngine(int _verbose, int _n_th)
+TopologyEngine::TopologyEngine(int _verbose, int _n_th)
 {
   verbose = _verbose;
   n_th = _n_th;
 }
 
-void StaticEngine::init()
+void TopologyEngine::init()
 {
   memset(pos_grid, 0, sizeof pos_grid);
   memset(age_grid, 0, sizeof age_grid);
@@ -19,25 +19,25 @@ void StaticEngine::init()
   pthread_barrier_init(&barrier, NULL, n_th);
 }
 
-void StaticEngine::insert_rabbit(Rabbit rabbit)
+void TopologyEngine::insert_rabbit(Rabbit rabbit)
 {
   pos_grid[rabbit.p_y][rabbit.p_x] = RABBIT_ID;
   age_grid[rabbit.p_y][rabbit.p_x] = rabbit.age;
 }
 
-void StaticEngine::insert_fox(Fox fox)
+void TopologyEngine::insert_fox(Fox fox)
 {
   pos_grid[fox.p_y][fox.p_x] = FOX_ID;
   age_grid[fox.p_y][fox.p_x] = fox.age;
   hun_grid[fox.p_y][fox.p_x] = fox.hunger;
 }
 
-void StaticEngine::insert_rock(Rock rock)
+void TopologyEngine::insert_rock(Rock rock)
 {
   pos_grid[rock.p_y][rock.p_x] = ROCK_ID;
 }
 
-void StaticEngine::distribute_input()
+void TopologyEngine::distribute_input()
 {
   int i, i_x, i_y, acc = 0;
   for (i = 0; i < n_th; i++)
@@ -55,7 +55,7 @@ void StaticEngine::distribute_input()
   }
 }
 
-void StaticEngine::replace_rabbit(Rabbit rabbit, TInfo inf)
+void TopologyEngine::replace_rabbit(Rabbit rabbit, TInfo inf)
 {
   if (owner[rabbit.p_y][rabbit.p_x] != inf.id)
   {
@@ -82,7 +82,7 @@ void StaticEngine::replace_rabbit(Rabbit rabbit, TInfo inf)
   tmp_age_grid[rabbit.p_y][rabbit.p_x] = rabbit.age;
 }
 
-void StaticEngine::replace_fox(Fox fox, TInfo inf)
+void TopologyEngine::replace_fox(Fox fox, TInfo inf)
 {
   if (owner[fox.p_y][fox.p_x] != inf.id)
   {
@@ -111,7 +111,7 @@ void StaticEngine::replace_fox(Fox fox, TInfo inf)
   tmp_hun_grid[fox.p_y][fox.p_x] = fox.hunger;
 }
 
-void StaticEngine::compute(TInfo inf)
+void TopologyEngine::compute(TInfo inf)
 {
   int iter, i, i_x, i_y;
   for (iter = 0; iter < N_GEN; iter++)
@@ -306,7 +306,7 @@ void StaticEngine::compute(TInfo inf)
   }
 }
 
-void StaticEngine::print_gen(int gen)
+void TopologyEngine::print_gen(int gen)
 {
   int i, j;
 
@@ -338,7 +338,7 @@ void StaticEngine::print_gen(int gen)
   printf("-\n\n");
 }
 
-void StaticEngine::print_output()
+void TopologyEngine::print_output()
 {
   int i, j, ct = 0;
   for (i = 0; i < R; i++)
@@ -362,7 +362,7 @@ void StaticEngine::print_output()
         printf("ROCK %d %d\n", i, j);
 }
 
-void StaticEngine::setup_input(int _GEN_PROC_RABBITS, int _GEN_PROC_FOXES, int _GEN_FOOD_FOXES, int _N_GEN, int _R, int _C, int _N)
+void TopologyEngine::setup_input(int _GEN_PROC_RABBITS, int _GEN_PROC_FOXES, int _GEN_FOOD_FOXES, int _N_GEN, int _R, int _C, int _N)
 {
   GEN_PROC_RABBITS = _GEN_PROC_RABBITS;
   GEN_PROC_FOXES = _GEN_PROC_FOXES;
@@ -373,7 +373,7 @@ void StaticEngine::setup_input(int _GEN_PROC_RABBITS, int _GEN_PROC_FOXES, int _
   N = _N;
 }
 
-TInfo StaticEngine::get_info(int id)
+TInfo TopologyEngine::get_info(int id)
 {
   return th_info[id];
 }

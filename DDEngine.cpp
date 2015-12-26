@@ -1,13 +1,13 @@
-#include "DynamicEngine.h"
+#include "DDEngine.h"
 
-DynamicEngine::DynamicEngine(int _verbose, int _n_th, int _redistribute)
+DDEngine::DDEngine(int _verbose, int _n_th, int _redistribute)
 {
   verbose = _verbose;
   n_th = _n_th;
   redistribute = _redistribute;
 }
 
-void DynamicEngine::init()
+void DDEngine::init()
 {
   memset(pos_grid, 0, sizeof pos_grid);
 
@@ -16,19 +16,19 @@ void DynamicEngine::init()
   pthread_barrier_init(&barrier, NULL, n_th);
 }
 
-void DynamicEngine::insert_rabbit(Rabbit rabbit)
+void DDEngine::insert_rabbit(Rabbit rabbit)
 {
   pos_grid[rabbit.p_y][rabbit.p_x] = RABBIT_ID;
   global_rabbit_list.push_back(rabbit);
 }
 
-void DynamicEngine::insert_fox(Fox fox)
+void DDEngine::insert_fox(Fox fox)
 {
   pos_grid[fox.p_y][fox.p_x] = FOX_ID;
   global_fox_list.push_back(fox);
 }
 
-void DynamicEngine::insert_rock(Rock rock)
+void DDEngine::insert_rock(Rock rock)
 {
   pos_grid[rock.p_y][rock.p_x] = ROCK_ID;
 }
@@ -47,7 +47,7 @@ bool f_pos_cmp(Fox a, Fox b)
   return a.p_y < b.p_y;
 }
 
-void DynamicEngine::distribute_input()
+void DDEngine::distribute_input()
 {
   int i, j;
   for (i = 0; i < n_th; i++)
@@ -87,7 +87,7 @@ void DynamicEngine::distribute_input()
   }
 }
 
-void DynamicEngine::compute(TInfo inf)
+void DDEngine::compute(TInfo inf)
 {
   int sq_gen = (int)sqrt(N_GEN);
 
@@ -377,7 +377,7 @@ void DynamicEngine::compute(TInfo inf)
   }
 }
 
-void DynamicEngine::print_gen(int gen)
+void DDEngine::print_gen(int gen)
 {
   int i, j;
 
@@ -409,7 +409,7 @@ void DynamicEngine::print_gen(int gen)
   printf("-\n\n");
 }
 
-void DynamicEngine::print_output()
+void DDEngine::print_output()
 {
   int i, j, ct = 0;
   for (i = 0; i < R; i++)
@@ -433,7 +433,7 @@ void DynamicEngine::print_output()
         printf("ROCK %d %d\n", i, j);
 }
 
-void DynamicEngine::setup_input(int _GEN_PROC_RABBITS, int _GEN_PROC_FOXES, int _GEN_FOOD_FOXES, int _N_GEN, int _R, int _C, int _N)
+void DDEngine::setup_input(int _GEN_PROC_RABBITS, int _GEN_PROC_FOXES, int _GEN_FOOD_FOXES, int _N_GEN, int _R, int _C, int _N)
 {
   GEN_PROC_RABBITS = _GEN_PROC_RABBITS;
   GEN_PROC_FOXES = _GEN_PROC_FOXES;
@@ -444,7 +444,7 @@ void DynamicEngine::setup_input(int _GEN_PROC_RABBITS, int _GEN_PROC_FOXES, int 
   N = _N;
 }
 
-TInfo DynamicEngine::get_info(int id)
+TInfo DDEngine::get_info(int id)
 {
   return th_info[id];
 }

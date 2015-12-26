@@ -5,10 +5,10 @@ CC=g++
 CFLAGS= -w -Wno-write-strings -O3 -Wall -g
 CLIBS= -lpthread
 
-SRC =            	       \
+SRC =            		\
 	Timer.cpp		\
-	StaticEngine.cpp	\
-	DynamicEngine.cpp	\
+	TopologyEngine.cpp	\
+	DDEngine.cpp		\
 	main.cpp
 
 OBJ =  ${SRC:.cpp=.o}
