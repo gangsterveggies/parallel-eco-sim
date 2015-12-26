@@ -28,7 +28,10 @@ void init()
       engine = new StaticEngine(verbose, n_th);
       break;
     case 1:
-      engine = new DynamicEngine(verbose, n_th);
+      engine = new DynamicEngine(verbose, n_th, 0);
+      break;
+    case 2:
+      engine = new DynamicEngine(verbose, n_th, 1);
       break;
     default:
       engine = new StaticEngine(verbose, n_th);

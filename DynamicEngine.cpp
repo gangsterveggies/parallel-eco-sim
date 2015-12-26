@@ -1,15 +1,18 @@
 #include "DynamicEngine.h"
 
-DynamicEngine::DynamicEngine(int _verbose, int _n_th)
+DynamicEngine::DynamicEngine(int _verbose, int _n_th, int _redistribute)
 {
   verbose = _verbose;
   n_th = _n_th;
+  redistribute = _redistribute;
 }
 
 void DynamicEngine::init()
 {
   memset(pos_grid, 0, sizeof pos_grid);
 
+  pthread_mutex_init(&(th_rlock), NULL);
+  pthread_mutex_init(&(th_flock), NULL);
   pthread_barrier_init(&barrier, NULL, n_th);
 }
 
@@ -88,6 +91,8 @@ void DynamicEngine::distribute_input()
 
 void DynamicEngine::compute(TInfo inf)
 {
+  int sq_gen = (int)sqrt(N_GEN);
+
   int iter, i;
   for (iter = 0; iter < N_GEN; iter++)
   {
@@ -311,7 +316,62 @@ void DynamicEngine::compute(TInfo inf)
 
     pthread_barrier_wait(&barrier);
 
-    // Poll for work!
+    if (redistribute && iter && iter % sq_gen == 0)
+    {
+      pthread_mutex_lock(&(th_rlock));
+      while (!rabbit_queue[inf.id].empty())
+      {
+        global_rabbit_list.push_back(rabbit_queue[inf.id].front());
+        rabbit_queue[inf.id].pop();
+      }
+      pthread_mutex_unlock(&(th_rlock));
+
+      pthread_mutex_lock(&(th_flock));
+      while (!fox_queue[inf.id].empty())
+      {
+        global_fox_list.push_back(fox_queue[inf.id].front());
+        fox_queue[inf.id].pop();
+      }
+      pthread_mutex_unlock(&(th_flock));
+
+      pthread_barrier_wait(&barrier);
+
+      if (inf.id == 0)
+      {
+        sort(global_rabbit_list.begin(), global_rabbit_list.end(), r_pos_cmp);
+        int r_sz = (int)global_rabbit_list.size();
+
+        int i, j;
+        for (i = 0; i < n_th; i++)
+        {
+          int to_add = r_sz / n_th + ((r_sz - n_th * (r_sz / n_th)) > i);
+          for (j = 0; j < to_add; j++)
+          {
+            rabbit_queue[i].push(global_rabbit_list.back());
+            global_rabbit_list.pop_back();
+          }
+        }
+      }
+
+      if (inf.id == 1 || (n_th == 1 && inf.id == 0))
+      {
+        sort(global_fox_list.begin(), global_fox_list.end(), f_pos_cmp);
+        int f_sz = (int)global_fox_list.size();
+
+        int i, j;
+        for (i = 0; i < n_th; i++)
+        {
+          int to_add = f_sz / n_th + ((f_sz - n_th * (f_sz / n_th)) > i);
+          for (j = 0; j < to_add; j++)
+          {
+            fox_queue[i].push(global_fox_list.back());
+            global_fox_list.pop_back();
+          }
+        }
+      }
+
+      pthread_barrier_wait(&barrier);
+    }
   }
 
   if (verbose && inf.id == 0)

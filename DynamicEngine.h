@@ -7,7 +7,7 @@
 class DynamicEngine : public Engine
 {
  public:
-  DynamicEngine(int _verbose, int _n_th);
+  DynamicEngine(int _verbose, int _n_th, int _redistribute);
 
   void init();
   void insert_rabbit(Rabbit rabbit);
@@ -25,9 +25,10 @@ class DynamicEngine : public Engine
   int GEN_PROC_RABBITS, GEN_PROC_FOXES, GEN_FOOD_FOXES, N_GEN, R, C, N;
   TInfo th_info[MAX_THREAD];
 
+  pthread_mutex_t th_rlock, th_flock;
   pthread_mutex_t th_locks[MAX_SIZE];
   pthread_barrier_t barrier;
-  int n_th = 0, verbose;
+  int n_th = 0, verbose, redistribute;
   int dx[4] = {0, 1, 0, -1};
   int dy[4] = {-1, 0, 1, 0};
 

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include <sys/types.h>
 #include <pthread.h>
 #include <vector>
@@ -13,7 +14,8 @@
 using namespace std;
 
 #define MAX_THREAD 65
-#define MAX_SIZE 250
+#define MAX_SIZE 1100
+//#define MAX_SIZE 250
 
 #define EMPTY_ID 0
 #define RABBIT_ID 1
