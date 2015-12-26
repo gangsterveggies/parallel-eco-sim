@@ -146,9 +146,6 @@ void StaticEngine::compute(TInfo inf)
 
           if (candidate_moves.empty())
           {
-            tmp_pos_grid[i_y][i_x] = pos_grid[i_y][i_x];
-            tmp_age_grid[i_y][i_x] = age_grid[i_y][i_x] + 1;
-
             Rabbit n_rabbit;
             n_rabbit.p_x = i_x;
             n_rabbit.p_y = i_y;

@@ -1,6 +1,7 @@
 #include "Timer.h"
-#include "StaticEngine.h"
 #include "Engine.h"
+#include "StaticEngine.h"
+#include "DynamicEngine.h"
 
 int ids[MAX_THREAD];
 int n_th = 0, verbose = 0, to_print = 0, to_time = 0, to_type = 0;
@@ -26,10 +27,14 @@ void init()
     case 0:
       engine = new StaticEngine(verbose, n_th);
       break;
+    case 1:
+      engine = new DynamicEngine(verbose, n_th);
+      break;
     default:
       engine = new StaticEngine(verbose, n_th);
       break;
   }
+
   engine->init();
 }
 
