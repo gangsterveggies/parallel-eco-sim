@@ -7,7 +7,7 @@
 class MixedEngine : public Engine
 {
  public:
-  MixedEngine(int _verbose, int _n_th);
+  MixedEngine(int _verbose, int _n_th, int _redistribute);
 
   void init();
   void insert_rabbit(Rabbit rabbit);
@@ -27,7 +27,7 @@ class MixedEngine : public Engine
 
   pthread_mutex_t th_locks[MAX_THREAD];
   pthread_barrier_t barrier;
-  int n_th = 0, verbose;
+  int n_th = 0, verbose, redistribute;
   queue<Rabbit> rabbit_queues[MAX_THREAD];
   queue<Fox> fox_queues[MAX_THREAD];
   int owner[MAX_SIZE][MAX_SIZE];

@@ -1,9 +1,10 @@
 #include "MixedEngine.h"
 
-MixedEngine::MixedEngine(int _verbose, int _n_th)
+MixedEngine::MixedEngine(int _verbose, int _n_th, int _redistribute)
 {
   verbose = _verbose;
   n_th = _n_th;
+  redistribute = _redistribute;
 }
 
 void MixedEngine::init()

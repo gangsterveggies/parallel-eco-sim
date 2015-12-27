@@ -14,7 +14,16 @@ void print_help()
   printf("usage:\n\tsim -np <np> [arguments]\n\n"
          "Available arguments:\n"
          "\t-h\t\tdisplay this help file\n"
-         "\t-np <np>\t\tuse <np> threads\n");
+         "\t-np <np>\t\tuse <np> threads\n"
+         "\t-pr\t\tprint final output\n"
+         "\t-tm\t\tprint computation time\n"
+         "\t-v\t\tverbose mode (print all generations)\n"
+         "\t-al <num>\t\trun with algorithm <num>:\n"
+         "\t\t0 - Topological Strategy\n"
+         "\t\t1 - Data Driven Strategy without work balancing\n"
+         "\t\t2 - Data Driven Strategy with work balancing\n"
+         "\t\t3 - Mixed Strategy without work balancing\n"
+         "\t\t4 - Mixed Strategy with work balancing\n");
 }
 
 void init()
@@ -35,7 +44,10 @@ void init()
       engine = new DDEngine(verbose, n_th, 1);
       break;
     case 3:
-      engine = new MixedEngine(verbose, n_th);
+      engine = new MixedEngine(verbose, n_th, 0);
+      break;
+    case 4:
+      engine = new MixedEngine(verbose, n_th, 1);
       break;
     default:
       engine = new TopologyEngine(verbose, n_th);
@@ -167,7 +179,7 @@ int main(int argc, char* argv[])
     print_output();
 
   if (to_time)
-    printf("Computation Time (ms): %0.4lf\n", Timer::elapsed());
+    printf("Computation Time (seconds): %0.4lf\n", Timer::elapsed());
 
   return 0;
 }
