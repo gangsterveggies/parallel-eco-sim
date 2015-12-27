@@ -312,6 +312,8 @@ void DDEngine::compute(TInfo inf)
 
     pthread_barrier_wait(&barrier);
 
+
+    // Redistribute work to balance it
     if (redistribute && iter && iter % sq_gen == 0)
     {
       pthread_mutex_lock(&(th_rlock));

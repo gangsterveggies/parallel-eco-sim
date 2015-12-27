@@ -9,6 +9,7 @@ SRC =            		\
 	Timer.cpp		\
 	TopologyEngine.cpp	\
 	DDEngine.cpp		\
+	MixedEngine.cpp		\
 	main.cpp
 
 OBJ =  ${SRC:.cpp=.o}

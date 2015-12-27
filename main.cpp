@@ -1,7 +1,8 @@
 #include "Timer.h"
 #include "Engine.h"
-#include "StaticEngine.h"
-#include "DynamicEngine.h"
+#include "TopologyEngine.h"
+#include "DDEngine.h"
+#include "MixedEngine.h"
 
 int ids[MAX_THREAD];
 int n_th = 0, verbose = 0, to_print = 0, to_time = 0, to_type = 0;
@@ -25,16 +26,19 @@ void init()
   switch (to_type)
   {
     case 0:
-      engine = new StaticEngine(verbose, n_th);
+      engine = new TopologyEngine(verbose, n_th);
       break;
     case 1:
-      engine = new DynamicEngine(verbose, n_th, 0);
+      engine = new DDEngine(verbose, n_th, 0);
       break;
     case 2:
-      engine = new DynamicEngine(verbose, n_th, 1);
+      engine = new DDEngine(verbose, n_th, 1);
+      break;
+    case 3:
+      engine = new MixedEngine(verbose, n_th);
       break;
     default:
-      engine = new StaticEngine(verbose, n_th);
+      engine = new TopologyEngine(verbose, n_th);
       break;
   }
 
