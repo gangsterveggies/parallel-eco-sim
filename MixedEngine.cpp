@@ -129,6 +129,8 @@ void MixedEngine::replace_fox(Fox fox, TInfo inf, int id)
 
 void MixedEngine::compute(TInfo inf)
 {
+  int sq_gen = 3 * (int)sqrt(N_GEN);
+
   int iter, i, i_x, i_y;
   for (iter = 0; iter < N_GEN; iter++)
   {
@@ -372,6 +374,68 @@ void MixedEngine::compute(TInfo inf)
     }
 
     add_fox[inf.id].clear();
+ 
+    if (redistribute && iter && iter % sq_gen == 0)
+    {
+      while (!rabbit_list[inf.id].empty())
+        rabbit_list[inf.id].pop();
+
+      while (!fox_list[inf.id].empty())
+        fox_list[inf.id].pop();
+
+      pthread_barrier_wait(&barrier);
+
+      if (inf.id == 0)
+      {
+        int acc = 0, tot = 0;
+
+        for (i_y = 0; i_y < R; i_y++)
+          for (i_x = 0; i_x < C; i_x++)
+          {
+            if (pos_grid[i_y][i_x] == RABBIT_ID)
+              tot++;
+
+            if (pos_grid[i_y][i_x] == FOX_ID)
+              tot++;
+          }
+
+        int upp = (tot + n_th - 1) / n_th;
+        for (i = 0; i < n_th; i++)
+        {
+          th_info[i].st_x = 0;
+          th_info[i].fn_x = C - 1;
+          th_info[i].st_y = acc;
+
+          int part = 0;
+          for (i_y = th_info[i].st_y; i_y < R && part < upp; i_y++)
+            for (i_x = th_info[i].st_x; i_x <= th_info[i].fn_x; i_x++)
+            {
+              if (pos_grid[i_y][i_x] == RABBIT_ID)
+                part++;
+
+              if (pos_grid[i_y][i_x] == FOX_ID)
+                part++;
+            }
+
+          acc = i_y;
+          th_info[i].fn_y = acc - 1;
+
+          for (i_y = th_info[i].st_y; i_y <= th_info[i].fn_y; i_y++)
+            for (i_x = th_info[i].st_x; i_x <= th_info[i].fn_x; i_x++)
+            {
+              owner[i_y][i_x] = i;
+
+              if (pos_grid[i_y][i_x] == RABBIT_ID)
+                rabbit_list[i].push(Position(i_x, i_y));
+
+              if (pos_grid[i_y][i_x] == FOX_ID)
+                fox_list[i].push(Position(i_x, i_y));
+            }
+        }
+      }
+
+      pthread_barrier_wait(&barrier);
+    }
   }
 
   if (verbose)
