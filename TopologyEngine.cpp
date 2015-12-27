@@ -299,11 +299,10 @@ void TopologyEngine::compute(TInfo inf)
         }
   }
 
-  if (verbose && inf.id == 0)
-  {
+  if (verbose)
     pthread_barrier_wait(&barrier);
+  if (verbose && inf.id == 0)
     print_gen(N_GEN);
-  }
 }
 
 void TopologyEngine::print_gen(int gen)

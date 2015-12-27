@@ -132,6 +132,7 @@ void MixedEngine::compute(TInfo inf)
   for (iter = 0; iter < N_GEN; iter++)
   {
     // Sync threads
+    pthread_barrier_wait(&barrier);
     if (verbose && inf.id == 0)
       print_gen(iter);
 
@@ -370,8 +371,6 @@ void MixedEngine::compute(TInfo inf)
     }
 
     add_fox[inf.id].clear();
-
-    pthread_barrier_wait(&barrier);
   }
 
   if (verbose)
