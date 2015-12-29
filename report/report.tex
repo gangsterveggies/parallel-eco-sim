@@ -13,6 +13,7 @@
 \usepackage{lipsum}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{float}
 \usepackage[a4paper,left=2cm,right=2cm,top=2.5cm,bottom=2.5cm]{geometry}
 
 %----------------------------------------------------------------------------------------
@@ -97,16 +98,16 @@ raposas podem procriar, duplicando-se cada animal num período
 regular. A Figura~\ref{fig:sim} exemplifica duas gerações de uma
 simulação.
 
-\begin{figure}
+\begin{figure}[H]
     \centering
-    \begin{subfigure}[b]{0.3\textwidth}
-        \includegraphics[width=\textwidth]{grid1.png}
-        \caption{Geração 1}
+    \begin{subfigure}[b]{0.4\textwidth}
+      \centering
+      \includegraphics[height=1.6in]{grid1.png}
     \end{subfigure}
     ~
-    \begin{subfigure}[b]{0.3\textwidth}
-      \includegraphics[width=\textwidth]{grid2.png}
-      \caption{Geração 2}
+    \begin{subfigure}[b]{0.4\textwidth}
+      \centering
+      \includegraphics[height=1.6in]{grid2.png}
     \end{subfigure}
     \caption{Exemplo de duas gerações de uma simulação}
     \label{fig:sim}
@@ -146,7 +147,195 @@ pois além de serem menos eficientes têm aplicabilidade reduzida.
 
 \section{Estratégias de paralelização}
 \label{sec:par}
+Discutiremos três abordagens com diferentes focos e as suas vantagens
+e desvantagens. A primeira abordagem (no código corresponde a
+\texttt{TopologyEngine}) é uma abordagem orientada à topologia do
+problema (ou \textit{topology driven parallelism}), ou seja, passa por
+paralelizar o problema usando a grelha que serve de base da
+simulação. A segunda estratégia (no código corresponde a
+\texttt{DDEngine}) é orientada aos dados do problema (ou \textit{data
+  driven parallelism}), ou seja, passa por paralelizar o próprio
+\textit{input} do problema. Finalmente, a última abordagem (no código
+corresponde a \texttt{MixedEngine}) é uma abordagem mista que combina
+ideias das duas últimas abordagens.
 
+Das três abordagens, as últimas duas permitem efetuar um
+rebalanceamento dinâmico das unidades de trabalho. Experimentámos
+várias alternativas que iremos discutir no fim desta secção.
+
+\subsection{Estratégia orientada à topologia}
+Esta estratégia é uma estratégia estática que divide a própria grelha
+da simulação pelas várias \textit{threads}. Inicialmente, a grelha é
+dividida em tiras horizontais iguais (uma por cada \textit{thread})
+que são posteriormente distribuídas uma para cada \textit{thread}. A
+distribuição está ilustrada na Figura~\ref{fig:par1}, tendo como base
+o exemplo da secção anterior. Para executar uma iteração da simulação,
+cada \textit{thread} percorre a tira que lhe foi atribuída duas vezes
+(uma para simular os coelhos e outra, análoga, para simular as
+raposas) e por cada vez aplica as regras da simulação. Caso a nova
+posição de um coelho ou raposa seja fora da tira de posições de uma
+\textit{thread} então o animal é colocado numa \textit{queue}
+correspondente à \textit{thread} cuja tira de posições contém a
+posição em questão. Cada uma destas \textit{queues} é protegida por
+\textit{mutexes} para ser \textit{thread safe}. Adicionalmente, as
+\textit{threads} são sincronizadas usando barreiras depois da
+simulação dos coelhos e depois da simulação das raposas para garantir
+a correção da simulação, como foi discutido na secção anterior.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.4\textwidth}
+      \centering
+      \includegraphics[height=1.6in]{grid1_par1.png}
+    \end{subfigure}
+    ~
+    \begin{subfigure}[b]{0.4\textwidth}
+      \centering
+      \includegraphics[height=1.6in]{grid2_par1.png}
+    \end{subfigure}
+    \caption{Divisão de trabalho da paralelização orientada à topologia}
+    \label{fig:par1}
+\end{figure}
+
+A vantagem desta estratégia está na sua simplicidade. Além de não
+necessitar de nenhum tipo de sincronização complexa, a comunicação
+entre \textit{threads} é extremamente reduzida, cada \textit{thread}
+só comunica com no máximo duas outras (a que contém a tira de cima e a
+de baixo). Assim, os conflitos entre \textit{threads} são reduzidos (a
+contenção de \textit{threads} é rara). Porém, esta estratégia tem
+várias desvantagens. Primeiramente, como a divisão é estática, se o
+\textit{input} não for balanceado podem surgir problemas de
+escalabilidade (ainda que fosse possível aplicar as ideias que serão
+usadas na estratégia mista para executar \textit{load
+  balancing}). Além disso, devido ao facto que em cada iteração é
+necessário percorrer a matriz da grelha por completo, a complexidade
+temporal da simulação tem um \textit{bottleneck} no tamanho da grelha:
+$R \times C$.
+
+\subsection{Estratégia orientada aos dados}
+Nesta estratégia o foco, como o próprio nome indica, é em paralelizar
+os próprios dados. Por conseguinte, as unidades de trabalho
+consideradas nesta estratégias são os próprios coelhos e
+raposas. Inicialmente, os $N_1$ animais existentes são divididos de
+uma forma \textit{round-robin} pelas \textit{threads} e guardados numa
+estrutura de dados por cada \textit{threads} (uma \textit{queue}, por
+exemplo). De modo a maximizar a localidade da distribuição, é feita
+uma ordenação por posição (primeiro pela coordenada $y$ e depois pela
+$x$, com o objetivo de ter uma distribuição semelhante à da estratégia
+anterior) antes da divisão de trabalho. A distribuição está ilustrada
+na Figura~\ref{fig:par2}, tendo como base o exemplo da secção
+anterior. Após a divisão, a cada iteração a simulação é efetuada
+considerando apenas os animais correspondentes a cada \textit{thread},
+o que na prática corresponde a percorrer todos os elementos da
+\textit{queue} de cada \textit{thread}. Apesar de só se considerarem
+os animais existentes na geração atual, é mantida uma matriz que
+representa a geração, com o objetivo de tornar mais eficiente certas
+primitivas como o teste de quais células livres. Adicionalmente, é
+necessário resolver os conflitos de movimentos. Para tal é mantida uma
+segunda matriz que vai sendo preenchida com os animais nas novas
+posições e que no fim servirá para cada \textit{thread} descartar os
+animais que ou foram comidos ou que desapareceram num conflito. Nesta
+matriz podem haver conflitos ao atualizar os seus valores e como tal é
+necessário protegeras suas alterações usando
+\textit{mutexes}. Experimentámos vários esquemas diferentes de
+\textit{mutexes} para proteger a escrita nesta matriz, desde um
+\textit{mutex} geral a um \textit{mutex} por célula, mas o que
+funcionou melhor foi o de ter um \textit{mutex} por cada linha, o que
+é justificável pelo facto da distribuição dos animais por
+\textit{thread} ser feita pela ordem descrita anteriormente, o que faz
+com que seja comum cada linha pertencer a apenas uma
+\textit{thread}. Finalmente, assim como na estratégia anterior, as
+\textit{threads} são sincronizadas usando barreiras depois da
+simulação dos coelhos e depois da simulação das raposas.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.4\textwidth}
+      \centering
+      \includegraphics[height=1.6in]{grid1_par2.png}
+    \end{subfigure}
+    ~
+    \begin{subfigure}[b]{0.4\textwidth}
+      \centering
+      \includegraphics[height=1.6in]{grid2_par2.png}
+    \end{subfigure}
+    \caption{Divisão de trabalho da paralelização orientada aos dados}
+    \label{fig:par2}
+\end{figure}
+
+Esta estratégia destaca-se da anterior por apenas fazer os cálculos
+estritamente necessários por iteração. Assim, o \textit{bottleneck}
+temporal de simular a geração $i$ é da ordem de $N_i$. Porém, para se
+conseguir esta melhoria, o algoritmo base ficou mais complexo através
+da presença das várias \textit{queues} e da forma de sincronização das
+\textit{threads}. Ao contrário da estratégia orientada à topologia,
+rebalancear o trabalho é muito mais natural para esta estratégia,
+basta movimentar unidades de trabalho entre as \textit{queues} de cada
+\textit{thread}. Discutiremos com mais detalhes alternativas possíveis
+para o processo de \textit{load balancing} no fim desta secção.
+
+\subsection{Estratégia mista}
+A última estratégia que explorámos considera o melhor das duas
+estratégias anteriores. Por um lado a divisão efetuada é análoga à da
+estratégia orientada à topologia, onde se definem tiras horizontais
+para serem atribuídas a cada \textit{thread}. Por outro lado, são
+mantidas \textit{queues} por cada \textit{thread} como na estratégia
+orientada aos dados de modo a apenas percorrer os elementos relevantes
+para a simulação da iteração atual. Adicionalmente, as tiras
+atribuídas a cada \textit{thread} não são uniformes como na estratégia
+original, mas tentam equilibrar o número de animais associadas a cada
+\textit{thread}. Assim, é feita uma divisão usando um algoritmo
+\textit{greedy} que vai crescendo cada tira até que ela inclua pelo
+menos $\frac{N_1}{T}$ animais, sendo $T$ o número de
+\textit{threads}. Esta distribuição está ilustrada
+na Figura~\ref{fig:par3}, tendo como base o exemplo da secção
+anterior.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.4\textwidth}
+      \centering
+      \includegraphics[height=1.6in]{grid1_par3.png}
+    \end{subfigure}
+    ~
+    \begin{subfigure}[b]{0.4\textwidth}
+      \centering
+      \includegraphics[height=1.6in]{grid2_par3.png}
+    \end{subfigure}
+    \caption{Divisão de trabalho da paralelização mista}
+    \label{fig:par3}
+\end{figure}
+
+Esta estratégia mantêm a vantagem de comunicações reduzidas entre
+\textit{threads} que a primeira estratégia possuía, ao mesmo tempo que
+mantém o \textit{bottleneck} temporal a $N_i$ para a geração $i$. Com
+esta nova divisão também se torna mais fácil rebalancear o trabalho,
+basta delinear novas tiras respeitando as condições já referidas (de
+ter aproximadamente $\frac{N_1}{T}$ animais por tira) e atualizar as
+\textit{queues} respetivas.
+
+\subsection{Rebalanceamento de trabalho}
+Para as estratégias que permitem uma divisão dinâmica de trabalho
+começamos por descrever um conjunto de observações
+importantes. Primeiro, é importante notar que quando é feita uma
+redistribuição de trabalho, não é viável que esta não seja global, ou
+seja, que não inclua todas as \textit{threads}. Isto é devido ao facto
+que é importante sincronizar o trabalho de cada uma após cada parte da
+simulação, logo mesmo que alguma \textit{thread} não participasse na
+redistribuição de trabalho teria de ficar à espera que as restantes
+terminassem. Isto elimina vários tipos de estratégias clássicas como
+\textit{work sharing} entre \textit{threads}. Outra observação
+importante passa por notar que não é eficiente redistribuir o trabalho
+a cada iteração, pois ambas as estratégias dinâmicas usam algoritmos
+pesados temporalmente para redistribuição de trabalho. Além disso,
+obter o valor de $N_i$ para decidir o quão desbalanceadas estão as
+\textit{queues} também requer um algoritmo pesado, logo também é pouco
+eficiente fazê-lo a cada iteração. Assim, optámos por apenas
+redistribuir trabalho a cada $\sqrt{N_G}$ gerações, no máximo. Antes
+de efetuar a redistribuição, aglomera-se o valor de $N_i$ somando o
+tamanho de todas as \textit{queues} e se alguma das \textit{queues}
+tiver mais de $25\%$ elementos do que $\frac{N_i}{T}$ então é feita
+uma redistribuição. O valor de $25\%$ foi obtido empiricamente.
 
 %----------------------------------------------------------------------------------------
 %	SECTION 4
