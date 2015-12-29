@@ -343,7 +343,70 @@ uma redistribuição. O valor de $25\%$ foi obtido empiricamente.
 
 \section{Resultados e discussão}
 \label{sec:res}
+Para testar os algoritmos e estratégias descritas na secção anterior,
+implementamos as ideias apresentadas em \texttt{C++} usando
+\texttt{pthreads} como ambiente de paralelismo. Posteriormente,
+testamos cada abordagem com \textit{inputs} diferentes, que exploram
+diferentes vantagens e desvantagens das várias estratégias. Os
+diferentes \textit{inputs} usados estão sumarizados na
+Tabela~\ref{tab:inps}. Omitimos uma implementação puramente sequencial
+por ser análoga à implementação paralela obtida retirando os
+\textit{mutexes} e barreiras, tendo as nossas experiências mostrado
+que a diferença temporal entre ela e a versão paralela com uma única
+\textit{thread} é desprezável.
 
+\begin{table}[H]
+  \small
+  \caption{\textit{Inputs} usados nos testes}
+  \label{tab:inps}
+  \centering
+  \begin{tabular}{|c|c|c|c|l|l|}
+    \hline
+    Grelha   & $N_1$ & $R$ & $C$ & Ficheiro                    & Nota \\ \hline \hline
+    {\tt S1} & 300   & 100 & 100 & {\tt input100x100\_unbal01} & \textit{Input} desbalanceado \\ \hline
+    {\tt S2} & 300   & 100 & 100 & {\tt input100x100\_unbal02} & \textit{Input} desbalanceado \\ \hline
+    {\tt M1} & 1400  & 200 & 200 & {\tt input200}              & \textit{Input} denso \\ \hline
+    {\tt L1} & 4     & 500 & 500 & {\tt input500}              & \textit{Input} muito esparso \\ \hline
+  \end{tabular}
+\end{table}
+
+Identificamos as estratégias a testar por: {\tt TP}, a estratégia
+orientada à topologia; {\tt DD-0}, a estratégia orientada aos dados
+sem \textit{load balancing}; {\tt DD-1}, a estratégia orientada aos
+dados com \textit{load balancing}; {\tt MX-0}, a estratégia mista sem
+\textit{load balancing}; {\tt MX-1}, a estratégia mista com
+\textit{load balancing}. Os resultados estão sumarizados na
+Figura~\ref{fig:res}.
+
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{S1.png}
+    \end{subfigure}
+    ~
+    \begin{subfigure}[b]{0.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{S2.png}
+    \end{subfigure}
+
+    \begin{subfigure}[b]{0.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{M1.png}
+    \end{subfigure}
+    ~
+    \begin{subfigure}[b]{0.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{L1.png}
+    \end{subfigure}
+
+    \caption{Gráficos dos resultados experimentais}
+    \label{fig:res}
+\end{figure}
+
+%-----
+%- Análise dos resultados TODO
+%-----
 
 %----------------------------------------------------------------------------------------
 %	SECTION 5
@@ -351,6 +414,15 @@ uma redistribuição. O valor de $25\%$ foi obtido empiricamente.
 
 \section{Conclusão e notas finais}
 \label{sec:con}
+Neste trabalho explorámos várias abordagens com diferentes focos para
+paralelizar um problema de simulação discreta numa grelha
+retangular. Além disso, implementámos cada um em {\tt C++} usando {\tt
+  pthreads} para obter um código paralelo no qual efetuámos vários
+testes com \textit{inputs} de naturezas e tamanhos diferentes.
+
+%----
+%- Nota sobre os resultados TODO
+%----
 
 %\bibliographystyle{plain}
 %\bibliography{report}
