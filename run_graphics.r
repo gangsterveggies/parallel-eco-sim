@@ -18,7 +18,7 @@ ggplot(data=dat, aes(x=thr, y=tim, group=typ, color=typ)) +
     geom_point() +
     scale_x_continuous(trans = log2_trans(),
                        breaks = trans_breaks("log2", function(x) 2^x)) +
-    scale_y_continuous(trans = log2_trans(),
+    scale_y_continuous(#trans = log2_trans(),
                        breaks=times) +
     xlab("Número de threads") +
     ylab("Tempo de execução (segundos)") +

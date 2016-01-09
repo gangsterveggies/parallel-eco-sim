@@ -25,7 +25,7 @@
 \author{Filipe Figueiredo\footnote{Filipe Figueiredo - 201203559},
   Pedro Paredes\footnote{Pedro Paredes - 201205725}, DCC - FCUP}
 
-\date{Dezembro 2015}
+\date{Janeiro 2016}
 
 \renewcommand{\tablename}{Tabela}
 \renewcommand{\figurename}{Figura}
@@ -45,16 +45,17 @@
 
 \section{Introdução}
 \label{sec:intro}
-Neste trabalho discutimos um problema de simulação de eventos
-discretos determinística numa grelha e exploramos diferentes
-estratégias de paralelismo possíveis.
+Neste trabalho discutimos um problema de simulação determinística de
+eventos discretos numa grelha e exploramos diferentes estratégias de
+paralelismo possíveis.
 
-Este tipo de problemas é notoriamente difícil de se paralelizar devido
-às dependências existentes nos dados e na topologia da simulação
-provenientes das restrições impostas pelo problema. Neste trabalho, a
-topologia da simulação é regular (uma grelha retangular) o que permite
-que abordagens simples sejam efetivas, mas no geral é necessário
-recorrer a métodos mais complexos como computação especulativa.
+Este tipo de problemas é notoriamente difícil de se paralelizar,
+devido às dependências existentes nos dados e na topologia da
+simulação provenientes das restrições impostas pelas mesmas. Neste
+trabalho, a topologia da simulação é regular (uma grelha retangular),
+o que permite que abordagens simples sejam efetivas, no entanto,
+geralmente é necessário recorrer a métodos mais complexos como
+computação especulativa.
 
 Focamo-nos em três abordagem simples, que aproveitam diferentes
 aspetos do problema. Além disso, exploramos diferentes esquemas de
@@ -62,12 +63,12 @@ redistribuição de trabalho de modo a podermos manter eficiência em
 \textit{inputs} desbalanceados.
 
 O resto deste relatório será organizado da seguinte forma. Na
-Secção~\ref{sec:prob} descrevemos o problema com algum pormenor e as
-dificuldades em o paralelizar. Na Secção~\ref{sec:par} introduzimos as
+Secção~\ref{sec:prob}, descrevemos o problema com algum pormenor e as
+dificuldades em o paralelizar. Na Secção~\ref{sec:par}, introduzimos as
 estratégias para paralelizar o problema e fazemos uma comparação
-teórica entre elas. Na Secção~\ref{sec:res} apresentamos os resultados
+teórica entre elas. Na Secção~\ref{sec:res}, apresentamos os resultados
 experimentais obtidos pela implementação de cada estratégia referida
-na secção anterior. Finalmente, na Secção~\ref{sec:con} fazemos
+na secção anterior. Finalmente, na Secção~\ref{sec:con}, fazemos
 algumas notas finais.
 
 %----------------------------------------------------------------------------------------
@@ -81,18 +82,18 @@ retangular de $R$ linhas por $C$ colunas. Cada célula da grelha pode
 estar vazia ou conter um dos seguintes elementos: uma pedra, um coelho
 ou uma raposa. A simulação é feita iterativamente, ou seja, a partir
 de uma geração inicial (o \textit{input}), representada por uma
-distribuição de pedras, coelhos e raposas numa grelha, é gerada uma
-nova geração seguindo um conjunto de regras fechado e o mesmo é
-repetido $N_G$ vezes até se obter a geração final (o
+distribuição de pedras, coelhos e raposas numa grelha, é produzida uma
+nova geração seguindo um conjunto de regras fechado, e repetindo o
+processo $N_G$ vezes até se obter a geração final (o
 \textit{output}). Representamos por $N_i$ o número de coelhos e
 raposas existentes na geração $i$.
 
 As regras de construção de uma nova geração começam por primeiro mover
 todos os coelhos simultaneamente para uma nova célula que esteja
-vazia, seguindo uma ordem determinística. Seguidamente as raposas são
+vazia, seguindo uma ordem determinística. Seguidamente, as raposas são
 movidas para uma célula vazia ou para uma célula que contenha um
-coelho. O último caso representa uma raposa a comer um coelho, o que
-na prática significa que o coelho que foi comido desaparece da
+coelho. O último caso representa uma raposa a comer um coelho, o que,
+na prática, significa que o coelho que foi comido desaparece da
 simulação na nova geração. Adicionalmente, tanto os coelhos como as
 raposas podem procriar, duplicando-se cada animal num período
 regular. A Figura~\ref{fig:sim} exemplifica duas gerações de uma
@@ -113,23 +114,23 @@ simulação.
     \label{fig:sim}
 \end{figure}
 
-A partir desta descrição simples do problema é possível identificar
-dependências fortes do problema. Em cada nova geração, a simulação das
+A partir desta descrição simples do problema, é possível identificar
+dependências fortes do mesmo. Em cada nova geração, a simulação das
 raposas só pode ser iniciada após a conclusão da simulação de todos os
 coelhos, pois os movimentos dos coelhos condicionam os movimentos das
 raposas (a dependência é apenas local, ou seja, um coelho muito
 afastado de uma certa raposa não condiciona o seu movimento, mas
 aproveitar este tipo de observações requer um algoritmo mais complexo
-e menos óbvio de paralelizar e não foi por isso considerado). Assim,
+e menos óbvio de paralelizar, não sendo por isso considerado). Assim,
 existe aqui um ponto de sincronização necessário na execução da
 simulação.
 
 Adicionalmente, a simulação dos coelhos também impõe certas restrições
-nos movimentos dos coelhos entre si. Além de serem obstáculos uns para
-os outros, podem existir conflitos no movimento de dois ou mais
-coelhos que se podem movimentar para a mesma célula. Nesse caso apenas
-um coelho sobrevive e por isso é necessário sincronizar os coelhos que
-após a resolução de conflitos se mantêm. Isto é análogo para as
+nos seus movimentos entre si. Além de serem obstáculos uns para os
+outros, podem existir conflitos no movimento de dois ou mais coelhos
+que se podem movimentar para a mesma célula. Nesse caso, apenas um
+coelho sobrevive e, por isso, é necessário sincronizar os coelhos que,
+após a resolução de conflitos, se mantêm. Isto é análogo para as
 raposas.
 
 É de notar que este tipo de simulação tem uma natureza exponencial
@@ -139,7 +140,7 @@ as simulações mais ``interessantes'' (leia-se mais movimentadas)
 rapidamente (em poucas gerações) preenchem a grelha a mais de
 $50\%$. Por esta razão, não consideramos representações esparsas da
 grelha (isto é, que não guardam a grelha diretamente como uma matriz),
-pois além de serem menos eficientes têm aplicabilidade reduzida.
+pois, além de serem menos eficientes, têm aplicabilidade reduzida.
 
 %----------------------------------------------------------------------------------------
 %	SECTION 3
@@ -166,17 +167,17 @@ várias alternativas que iremos discutir no fim desta secção.
 \subsection{Estratégia orientada à topologia}
 Esta estratégia é uma estratégia estática que divide a própria grelha
 da simulação pelas várias \textit{threads}. Inicialmente, a grelha é
-dividida em tiras horizontais iguais (uma por cada \textit{thread})
-que são posteriormente distribuídas uma para cada \textit{thread}. A
-distribuição está ilustrada na Figura~\ref{fig:par1}, tendo como base
-o exemplo da secção anterior. Para executar uma iteração da simulação,
-cada \textit{thread} percorre a tira que lhe foi atribuída duas vezes
-(uma para simular os coelhos e outra, análoga, para simular as
-raposas) e por cada vez aplica as regras da simulação. Caso a nova
-posição de um coelho ou raposa seja fora da tira de posições de uma
-\textit{thread} então o animal é colocado numa \textit{queue}
-correspondente à \textit{thread} cuja tira de posições contém a
-posição em questão. Cada uma destas \textit{queues} é protegida por
+dividida em tiras horizontais iguais que são posteriormente
+distribuídas uma para cada \textit{thread}. A distribuição está
+ilustrada na Figura~\ref{fig:par1}, tendo como base o exemplo da
+secção anterior. Para executar uma iteração da simulação, cada
+\textit{thread} percorre a tira que lhe foi atribuída duas vezes (uma
+para simular os coelhos e outra, análoga, para simular as raposas) e,
+por cada vez, aplica as regras da simulação. Caso a nova posição de um
+coelho ou raposa seja fora da tira de posições de uma \textit{thread},
+então o animal é colocado numa \textit{queue} correspondente à
+\textit{thread} cuja tira de posições contém a posição em
+questão. Cada uma destas \textit{queues} é protegida por
 \textit{mutexes} para ser \textit{thread safe}. Adicionalmente, as
 \textit{threads} são sincronizadas usando barreiras depois da
 simulação dos coelhos e depois da simulação das raposas para garantir
@@ -204,7 +205,7 @@ só comunica com no máximo duas outras (a que contém a tira de cima e a
 de baixo). Assim, os conflitos entre \textit{threads} são reduzidos (a
 contenção de \textit{threads} é rara). Porém, esta estratégia tem
 várias desvantagens. Primeiramente, como a divisão é estática, se o
-\textit{input} não for balanceado podem surgir problemas de
+\textit{input} não for balanceado, podem surgir problemas de
 escalabilidade (ainda que fosse possível aplicar as ideias que serão
 usadas na estratégia mista para executar \textit{load
   balancing}). Além disso, devido ao facto que em cada iteração é
@@ -218,28 +219,28 @@ os próprios dados. Por conseguinte, as unidades de trabalho
 consideradas nesta estratégias são os próprios coelhos e
 raposas. Inicialmente, os $N_1$ animais existentes são divididos de
 uma forma \textit{round-robin} pelas \textit{threads} e guardados numa
-estrutura de dados por cada \textit{threads} (uma \textit{queue}, por
+estrutura de dados por cada \textit{thread} (uma \textit{queue}, por
 exemplo). De modo a maximizar a localidade da distribuição, é feita
 uma ordenação por posição (primeiro pela coordenada $y$ e depois pela
-$x$, com o objetivo de ter uma distribuição semelhante à da estratégia
-anterior) antes da divisão de trabalho. A distribuição está ilustrada
-na Figura~\ref{fig:par2}, tendo como base o exemplo da secção
-anterior. Após a divisão, a cada iteração a simulação é efetuada
-considerando apenas os animais correspondentes a cada \textit{thread},
-o que na prática corresponde a percorrer todos os elementos da
-\textit{queue} de cada \textit{thread}. Apesar de só se considerarem
-os animais existentes na geração atual, é mantida uma matriz que
-representa a geração, com o objetivo de tornar mais eficiente certas
-primitivas como o teste de quais células livres. Adicionalmente, é
-necessário resolver os conflitos de movimentos. Para tal é mantida uma
-segunda matriz que vai sendo preenchida com os animais nas novas
-posições e que no fim servirá para cada \textit{thread} descartar os
-animais que ou foram comidos ou que desapareceram num conflito. Nesta
-matriz podem haver conflitos ao atualizar os seus valores e como tal é
-necessário protegeras suas alterações usando
-\textit{mutexes}. Experimentámos vários esquemas diferentes de
-\textit{mutexes} para proteger a escrita nesta matriz, desde um
-\textit{mutex} geral a um \textit{mutex} por célula, mas o que
+$x$), com o objetivo de ter uma distribuição semelhante à da
+estratégia anterior) antes da divisão de trabalho. A distribuição está
+ilustrada na Figura~\ref{fig:par2}, tendo como base o exemplo da
+secção anterior. Após a divisão, a cada iteração, a simulação é
+efetuada considerando apenas os animais correspondentes a cada
+\textit{thread}, o que na prática corresponde a percorrer todos os
+elementos da \textit{queue} de cada \textit{thread}. Apesar de só se
+considerarem os animais existentes na geração atual, é mantida uma
+matriz que representa a geração, com o objetivo de tornar mais
+eficiente certas primitivas como o teste de quais células estão
+livres. Adicionalmente, é necessário resolver os conflitos de
+movimentos. Para tal, é mantida uma segunda matriz que vai sendo
+preenchida com os animais nas novas posições e que, no fim, servirá
+para cada \textit{thread} descartar os animais que ou foram comidos ou
+que desapareceram num conflito. Nesta matriz podem haver conflitos ao
+atualizar os seus valores e, como tal, é necessário proteger as suas
+alterações, usando \textit{mutexes}. Experimentámos vários esquemas
+diferentes de \textit{mutexes} para proteger a escrita nesta matriz,
+desde um \textit{mutex} geral a um \textit{mutex} por célula. O que
 funcionou melhor foi o de ter um \textit{mutex} por cada linha, o que
 é justificável pelo facto da distribuição dos animais por
 \textit{thread} ser feita pela ordem descrita anteriormente, o que faz
@@ -270,9 +271,10 @@ conseguir esta melhoria, o algoritmo base ficou mais complexo através
 da presença das várias \textit{queues} e da forma de sincronização das
 \textit{threads}. Ao contrário da estratégia orientada à topologia,
 rebalancear o trabalho é muito mais natural para esta estratégia,
-basta movimentar unidades de trabalho entre as \textit{queues} de cada
-\textit{thread}. Discutiremos com mais detalhes alternativas possíveis
-para o processo de \textit{load balancing} no fim desta secção.
+bastando movimentar unidades de trabalho entre as \textit{queues} de
+cada \textit{thread}. Discutiremos com mais detalhes alternativas
+possíveis para o processo de \textit{load balancing} no fim desta
+secção.
 
 \subsection{Estratégia mista}
 A última estratégia que explorámos considera o melhor das duas
@@ -280,7 +282,7 @@ estratégias anteriores. Por um lado a divisão efetuada é análoga à da
 estratégia orientada à topologia, onde se definem tiras horizontais
 para serem atribuídas a cada \textit{thread}. Por outro lado, são
 mantidas \textit{queues} por cada \textit{thread} como na estratégia
-orientada aos dados de modo a apenas percorrer os elementos relevantes
+orientada aos dados, de modo a apenas percorrer os elementos relevantes
 para a simulação da iteração atual. Adicionalmente, as tiras
 atribuídas a cada \textit{thread} não são uniformes como na estratégia
 original, mas tentam equilibrar o número de animais associadas a cada
@@ -310,32 +312,33 @@ Esta estratégia mantêm a vantagem de comunicações reduzidas entre
 \textit{threads} que a primeira estratégia possuía, ao mesmo tempo que
 mantém o \textit{bottleneck} temporal a $N_i$ para a geração $i$. Com
 esta nova divisão também se torna mais fácil rebalancear o trabalho,
-basta delinear novas tiras respeitando as condições já referidas (de
-ter aproximadamente $\frac{N_1}{T}$ animais por tira) e atualizar as
-\textit{queues} respetivas.
+bastando delinear novas tiras, respeitando as condições já referidas
+(de ter aproximadamente $\frac{N_1}{T}$ animais por tira), e atualizar
+as \textit{queues} respetivas.
 
 \subsection{Rebalanceamento de trabalho}
-Para as estratégias que permitem uma divisão dinâmica de trabalho
+Para as estratégias que permitem uma divisão dinâmica de trabalho,
 começamos por descrever um conjunto de observações
 importantes. Primeiro, é importante notar que quando é feita uma
 redistribuição de trabalho, não é viável que esta não seja global, ou
-seja, que não inclua todas as \textit{threads}. Isto é devido ao facto
-que é importante sincronizar o trabalho de cada uma após cada parte da
-simulação, logo mesmo que alguma \textit{thread} não participasse na
-redistribuição de trabalho teria de ficar à espera que as restantes
-terminassem. Isto elimina vários tipos de estratégias clássicas como
-\textit{work sharing} entre \textit{threads}. Outra observação
-importante passa por notar que não é eficiente redistribuir o trabalho
-a cada iteração, pois ambas as estratégias dinâmicas usam algoritmos
-pesados temporalmente para redistribuição de trabalho. Além disso,
-obter o valor de $N_i$ para decidir o quão desbalanceadas estão as
-\textit{queues} também requer um algoritmo pesado, logo também é pouco
-eficiente fazê-lo a cada iteração. Assim, optámos por apenas
-redistribuir trabalho a cada $\sqrt{N_G}$ gerações, no máximo. Antes
-de efetuar a redistribuição, aglomera-se o valor de $N_i$ somando o
-tamanho de todas as \textit{queues} e se alguma das \textit{queues}
-tiver mais de $25\%$ elementos do que $\frac{N_i}{T}$ então é feita
-uma redistribuição. O valor de $25\%$ foi obtido empiricamente.
+seja, que não inclua todas as \textit{threads}. Isto deve-se ao facto
+de que é importante sincronizar o trabalho das \textit{threads} após
+cada parte da simulação, visto que mesmo que alguma \textit{thread}
+não participasse na redistribuição de trabalho, teria que ficar à
+espera que as restantes terminassem. Isto elimina vários tipos de
+estratégias clássicas como \textit{work sharing} entre
+\textit{threads}. Outra observação importante passa por notar que não
+é eficiente redistribuir o trabalho a cada iteração, pois ambas as
+estratégias dinâmicas usam algoritmos pesados temporalmente para
+redistribuição de trabalho. Além disso, obter o valor de $N_i$ para
+decidir o quão desbalanceadas estão as \textit{queues} também requer
+um algoritmo pesado, sendo por isso também pouco eficiente fazê-lo a
+cada iteração. Assim, optámos por apenas redistribuir trabalho no
+máximo a cada $\sqrt{N_G}$ gerações. Antes de efetuar a
+redistribuição, aglomera-se o valor de $N_i$ somando o tamanho de
+todas as \textit{queues} e, se alguma das \textit{queues} tiver mais de
+$25\%$ elementos do que $\frac{N_i}{T}$, então é feita uma
+redistribuição. O valor de $25\%$ foi obtido empiricamente.
 
 %----------------------------------------------------------------------------------------
 %	SECTION 4
@@ -352,7 +355,7 @@ diferentes \textit{inputs} usados estão sumarizados na
 Tabela~\ref{tab:inps}. Omitimos uma implementação puramente sequencial
 por ser análoga à implementação paralela obtida retirando os
 \textit{mutexes} e barreiras, tendo as nossas experiências mostrado
-que a diferença temporal entre ela e a versão paralela com uma única
+que a diferença temporal entre esta e a versão paralela com uma única
 \textit{thread} é desprezável.
 
 \begin{table}[H]
@@ -360,13 +363,13 @@ que a diferença temporal entre ela e a versão paralela com uma única
   \caption{\textit{Inputs} usados nos testes}
   \label{tab:inps}
   \centering
-  \begin{tabular}{|c|c|c|c|l|l|}
+  \begin{tabular}{|c|c|c|c|c|l|l|}
     \hline
-    Grelha   & $N_1$ & $R$ & $C$ & Ficheiro                    & Nota \\ \hline \hline
-    {\tt S1} & 300   & 100 & 100 & {\tt input100x100\_unbal01} & \textit{Input} desbalanceado \\ \hline
-    {\tt S2} & 300   & 100 & 100 & {\tt input100x100\_unbal02} & \textit{Input} desbalanceado \\ \hline
-    {\tt M1} & 1400  & 200 & 200 & {\tt input200}              & \textit{Input} denso \\ \hline
-    {\tt L1} & 4     & 500 & 500 & {\tt input500}              & \textit{Input} muito esparso \\ \hline
+    Grelha   & $N_1$ & $R$ & $C$ & $N_G$  & Ficheiro                    & Nota \\ \hline \hline
+    {\tt S1} & 300   & 100 & 100 & 10000 & {\tt input100x100\_unbal01} & \textit{Input} desbalanceado \\ \hline
+    {\tt S2} & 300   & 100 & 100 & 10000 & {\tt input100x100\_unbal02} & \textit{Input} desbalanceado \\ \hline
+    {\tt M1} & 1400  & 200 & 200 & 10000 & {\tt input200}              & \textit{Input} denso \\ \hline
+    {\tt L1} & 4     & 500 & 500 & 2000  & {\tt input500}              & \textit{Input} muito esparso \\ \hline
   \end{tabular}
 \end{table}
 
@@ -376,26 +379,32 @@ sem \textit{load balancing}; {\tt DD-1}, a estratégia orientada aos
 dados com \textit{load balancing}; {\tt MX-0}, a estratégia mista sem
 \textit{load balancing}; {\tt MX-1}, a estratégia mista com
 \textit{load balancing}. Os resultados estão sumarizados na
-Figura~\ref{fig:res}.
+Figura~\ref{fig:res} e na Tabela~\ref{tbl:m1} e Tabela~\ref{tbl:l1}
+para {\tt M1} e {\tt L1}, tendo sido corridos com 1, 2, 4, 8 e 16 {\it
+  threads}. É de notar que não foi incluída uma versão puramente
+sequencial por ser completamente análoga à de 1 {\it thread} sem os
+construtores paralelos (barreiras e {\it mutexes}), mas também que
+comparando a execução dos dois em diferentes testes a diferença de
+tempos foi desprezável, menos de 1$\%$.
 
 \begin{figure}[t]
     \centering
-    \begin{subfigure}[b]{0.45\textwidth}
+    \begin{subfigure}[b]{0.49\textwidth}
       \centering
       \includegraphics[width=\textwidth]{S1.png}
     \end{subfigure}
     ~
-    \begin{subfigure}[b]{0.45\textwidth}
+    \begin{subfigure}[b]{0.49\textwidth}
       \centering
       \includegraphics[width=\textwidth]{S2.png}
     \end{subfigure}
 
-    \begin{subfigure}[b]{0.45\textwidth}
+    \begin{subfigure}[b]{0.49\textwidth}
       \centering
       \includegraphics[width=\textwidth]{M1.png}
     \end{subfigure}
     ~
-    \begin{subfigure}[b]{0.45\textwidth}
+    \begin{subfigure}[b]{0.49\textwidth}
       \centering
       \includegraphics[width=\textwidth]{L1.png}
     \end{subfigure}
@@ -404,9 +413,116 @@ Figura~\ref{fig:res}.
     \label{fig:res}
 \end{figure}
 
-%-----
-%- Análise dos resultados TODO
-%-----
+\begin{table}[t]
+  \begin{subtable}[b]{0.49\textwidth}
+    \centering
+    \scriptsize
+    \begin{tabular}{|l|r|r|r|}
+      \hline
+      Alg. & $n_{th}$ & Tempo (s) & {\it speedup} \\ \hline
+      \multicolumn{1}{|c|}{{\tt TP}} & 1 & 68.38 & 1.00 \\ \cline{ 2- 4}
+      & 2 & 36.60 & 1.87 \\ \cline{ 2- 4}
+      & 4 & 19.59 & 3.49 \\ \cline{ 2- 4}
+      & 8 & 12.90 & 5.30 \\ \cline{ 2- 4}
+      & 16 & 9.30 & 7.36 \\ \hline
+      \multicolumn{ 1}{|c|}{{\tt DD-0}}  & 1 & 83.64 & 1.00 \\ \cline{ 2- 4}
+      & 2 & 62.34 & 1.34 \\ \cline{ 2- 4}
+      & 4 & 47.11 & 1.78 \\ \cline{ 2- 4}
+      & 8 & 36.39 & 2.30 \\ \cline{ 2- 4}
+      & 16 & 34.35 & 2.43 \\ \hline
+      \multicolumn{ 1}{|c|}{{\tt DD-1}}  & 1 & 78.69 & 1.00 \\ \cline{ 2- 4}
+      & 2 & 55.41 & 1.42 \\ \cline{ 2- 4}
+      & 4 & 37.49 & 2.10 \\ \cline{ 2- 4}
+      & 8 & 21.16 & 3.72 \\ \cline{ 2- 4}
+      & 16 & 18.94 & 4.15 \\ \hline
+      \multicolumn{ 1}{|c|}{{\tt MX-0}}  & 1 & 73.72 & 1.00 \\ \cline{ 2- 4}
+      & 2 & 47.90 & 1.54 \\ \cline{ 2- 4}
+      & 4 & 29.58 & 2.49 \\ \cline{ 2- 4}
+      & 8 & 17.52 & 4.21 \\ \cline{ 2- 4}
+      & 16 & 12.99 & 5.68 \\ \hline
+      \multicolumn{ 1}{|c|}{{\tt MX-1}}  & 1 & 72.49 & 1.00 \\ \cline{ 2- 4}
+      & 2 & 46.57 & 1.56 \\ \cline{ 2- 4}
+      & 4 & 27.75 & 2.61 \\ \cline{ 2- 4}
+      & 8 & 18.48 & 3.92 \\ \cline{ 2- 4}
+      & 16 & 12.46 & 5.82 \\ \hline
+    \end{tabular}
+    \caption{Resultados para {\tt M1}}
+    \label{tbl:m1}
+  \end{subtable}
+  ~
+  \begin{subtable}[b]{0.49\textwidth}
+    \centering
+    \scriptsize
+    \begin{tabular}{|l|r|r|r|}
+      \hline
+      Alg. & $n_{th}$ & Tempo (s) & {\it speedup} \\ \hline
+      \multicolumn{1}{|c|}{{\tt TP}} & 1 & 33.25 & 1.00 \\ \cline{ 2- 4}
+                             & 2 & 21.02 & 1.58 \\ \cline{ 2- 4}
+                             & 4 & 11.50 & 2.89 \\ \cline{ 2- 4}
+                             & 8 & 6.56 & 5.07 \\ \cline{ 2- 4}
+                             & 16 & 4.19 & 7.93 \\ \hline
+      \multicolumn{ 1}{|c|}{{\tt DD-0}} & 1 & 36.78 & 1.00 \\ \cline{ 2- 4}
+                             & 2 & 34.66 & 1.06 \\ \cline{ 2- 4}
+                             & 4 & 34.96 & 1.05 \\ \cline{ 2- 4}
+                             & 8 & 35.57 & 1.03 \\ \cline{ 2- 4}
+                             & 16 & 36.19 & 1.02 \\ \hline
+      \multicolumn{ 1}{|c|}{{\tt DD-1}} & 1 & 35.67 & 1.00 \\ \cline{ 2- 4}
+                             & 2 & 22.84 & 1.56 \\ \cline{ 2- 4}
+                             & 4 & 14.66 & 2.43 \\ \cline{ 2- 4}
+                             & 8 & 7.99 & 4.46 \\ \cline{ 2- 4}
+                             & 16 & 5.95 & 6.00 \\ \hline
+      \multicolumn{ 1}{|c|}{{\tt MX-0}} & 1 & 33.94 & 1.00 \\ \cline{ 2- 4}
+                             & 2 & 23.16 & 1.47 \\ \cline{ 2- 4}
+                             & 4 & 14.37 & 2.36 \\ \cline{ 2- 4}
+                             & 8 & 8.34 & 4.07 \\ \cline{ 2- 4}
+                             & 16 & 5.63 & 6.03 \\ \hline
+      \multicolumn{ 1}{|c|}{{\tt MX-1}} & 1 & 30.74 & 1.00 \\ \cline{ 2- 4}
+                             & 2 & 19.80 & 1.55 \\ \cline{ 2- 4}
+                             & 4 & 10.88 & 2.83 \\ \cline{ 2- 4}
+                             & 8 & 6.78 & 4.53 \\ \cline{ 2- 4}
+                             & 16 & 5.08 & 6.05 \\ \hline
+    \end{tabular}
+    \caption{Resultados para {\tt L1}}
+    \label{tbl:l1}
+  \end{subtable}
+\end{table}
+
+É possível observar que para todos os métodos, os {\it speedups} a
+partir de 4 {\it threads} começaram a deteriorar-se, pois a
+necessidade de sincronizar repetidamente as {\it threads} nas várias
+gerações impede que seja explorado mais paralelismo. Segundo testes
+extra, omitidos por brevidade, a maior parte do tempo apenas cerca de
+$60\%$ das {\it threads} estavam ativas (para 2 ou mais {\it
+  threads}).
+
+O resultado mais relevante dos testes efetuados foi que o método que
+teve os melhores resultados foi o {\tt TP}, tendo obtido perto de 8
+como {\it speedup} para 16 {\it threads} e à volta de 5 para 8 {\it
+  threads}. Segundo a discussão teórica inicial, este método teria
+dificuldades em ter bons resultados em grelhas desbalanceadas, pois a
+sua divisão é completamente estática. Porém, apesar dos métodos {\tt
+  MX} terem um comportamento semelhante em termos de escalabilidade, o
+{\tt TP} conseguiu melhores {\it speedups} e de uma forma geral
+melhores tempos para todas as instâncias. A razão para tal é que é
+muito difícil obrigar o {\it input} a ser desbalanceado de forma a
+prejudicar a eficiência do {\tt TP}. Por exemplo, apesar do {\tt L1}
+ser muito esparso e desbalanceado, os animais rapidamente se espalham
+pela grelha (mesmo tendo valores altos de idades de procriação), sendo
+que a computação é mais pesada depois de se espalharem, por haverem
+mais unidades de trabalho. É possível ``forçar'' o {\tt TP} a ter um
+comportamento deteriorado, por exemplo, colocando tiras de pedras na
+grelha de forma a conter os animais em certas secções, desbalanceando
+permanentemente o {\it input}. Para este tipo de simulação tanto o
+{\tt DD-1} como o {\tt MX-1} terão muito mais sucesso. Não foram
+incluídos testes nesse sentido por brevidade e também por esse tipo de
+simulações não ser ``natural'' ao tipo de problema.
+
+Como seria de esperar, o {\tt DD-0} teve a pior {\it performance},
+devido ao facto que não aproveita nenhum tipo de localidade para
+dividir o trabalho e rapidamente várias {\it threads} ficam sem
+trabalho. Já o {\tt DD-1} teve algum sucesso, comparável ao dos
+restantes métodos, em termos de escalabilidade, porém foi mais lento
+pois a simulação base é mais pesada.
 
 %----------------------------------------------------------------------------------------
 %	SECTION 5
@@ -420,9 +536,16 @@ retangular. Além disso, implementámos cada um em {\tt C++} usando {\tt
   pthreads} para obter um código paralelo no qual efetuámos vários
 testes com \textit{inputs} de naturezas e tamanhos diferentes.
 
-%----
-%- Nota sobre os resultados TODO
-%----
+Os resultados dos testes efetuados mostram que foi possível obter {\it
+  speedups} à volta de $\frac{n_{th}}{2}$ para os melhores métodos e
+foi possível observar que os métodos mais eficientes foram os que
+privilegiaram a simplicidade da computação base e aproveitaram a
+localidade dos dados. Foi possível efetuar diferentes análises mais
+detalhadas, como os pontos em que foram feitas partilhas de unidades
+de trabalho entre {\it threads} para as várias estratégias ou o tempo
+médio de execução por cada ponto de sincronização, mas por brevidade
+foram omitidas e os seus resultados foram incluídos nas conclusões
+retiradas da análise feita.
 
 %\bibliographystyle{plain}
 %\bibliography{report}
