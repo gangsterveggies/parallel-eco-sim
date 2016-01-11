@@ -31,6 +31,8 @@ class MixedEngine : public Engine
   queue<Rabbit> rabbit_queues[MAX_THREAD];
   queue<Fox> fox_queues[MAX_THREAD];
   int owner[MAX_SIZE][MAX_SIZE];
+  int glob_rabbit, glob_fox, do_res;
+  pthread_mutex_t res_rabbit, res_fox;
 
   int dx[4] = {0, 1, 0, -1};
   int dy[4] = {-1, 0, 1, 0};

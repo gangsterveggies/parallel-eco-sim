@@ -21,6 +21,11 @@ void MixedEngine::init()
     pthread_mutex_init(&(th_locks[i]), NULL);
 
   pthread_barrier_init(&barrier, NULL, n_th);
+
+  glob_rabbit = 0;
+  glob_fox = 0;
+  pthread_mutex_init(&(res_rabbit), NULL);
+  pthread_mutex_init(&(res_fox), NULL);
 }
 
 void MixedEngine::insert_rabbit(Rabbit rabbit)
@@ -377,13 +382,40 @@ void MixedEngine::compute(TInfo inf)
  
     if (redistribute && iter && iter % sq_gen == 0)
     {
+      int loc_rabbit = rabbit_list[inf.id].size();
+      int loc_fox = fox_list[inf.id].size();
+
+      do_res = 0;
+
+      pthread_mutex_lock(&res_rabbit);
+      glob_rabbit += loc_rabbit;
+      pthread_mutex_unlock(&res_rabbit);
+
+      pthread_mutex_lock(&res_fox);
+      glob_fox += loc_fox;
+      pthread_mutex_unlock(&res_fox);
+
+      pthread_barrier_wait(&barrier);
+
+      if (abs(loc_rabbit - glob_rabbit) * 4 >= glob_rabbit)
+        do_res = 1;
+
+      if (abs(loc_fox - glob_fox) * 4 * n_th >= glob_fox)
+        do_res = 1;
+
+      pthread_barrier_wait(&barrier);
+
+      glob_rabbit = 0;
+      glob_fox = 0;
+
+      if (do_res)
+        continue;
+
       while (!rabbit_list[inf.id].empty())
         rabbit_list[inf.id].pop();
 
       while (!fox_list[inf.id].empty())
         fox_list[inf.id].pop();
-
-      pthread_barrier_wait(&barrier);
 
       if (inf.id == 0)
       {

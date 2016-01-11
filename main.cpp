@@ -160,6 +160,9 @@ int main(int argc, char* argv[])
   init();
   read_input();
 
+  if (!to_print && !to_time)
+    printf("Warning: no output method selected\n");
+
   Timer::start();
   distribute_input();
 
